@@ -11,7 +11,7 @@ import sys
 import os
 
 from graph import Node, Edge
-from directions import Directions
+from directions import Direction
 
 class Location(Node):    
         
@@ -63,16 +63,12 @@ class Map(object):
         return self.__locations
 
     def find_location_from_equivalent_direction(self, location, direction):
-        print "  Attempting to look at equivalent directions..."
         found = None
-        for (first_direction, second_direction) in Directions.equivalents(direction):
-            print "  Going {0} then {1} from {2}".format(first_direction, second_direction, location)
+        for (first_direction, second_direction) in direction.equivalents():
             first_location = location.get_location_in(first_direction)
             if first_location:
-                print "  Got to {0} by going {1}".format(first_location, first_direction)
                 found = first_location.get_location_in(second_direction)
                 if found: 
-                    print "  ** Found: {0}".format(found)
                     break
         return found                
 
@@ -92,7 +88,7 @@ class PathStrategy(object):
         
     def directions(self, location=None):
         """Returns a list of directions that the Location could have"""
-        return Directions.all_directions()
+        return Direction.all()
     
 class MapBuilder(object):
 
@@ -119,31 +115,28 @@ class MapBuilder(object):
         if next_location: 
             self._visit(next_location)
             
-    def _discover_location_in_direction_via_neighbours(self, location, direction):
-        pass
+    def add_location(self, location): 
+        self.__map.add_location(location)
+        self.__location_queue.append(location)
+        return location
+        
+    def _new_path(self, location, to_location):
+        return Path(location, to_location)    
+            
+    def add_path(self, path):
+        self.__map.add_path(path)        
+        return path
             
     def _visit(self, location):
-        print "Visting {0}".format(location)
         for direction in self.__path_strategy.directions(location):
-            print "Going in direction {0} from {1}".format(direction, location)
             if not location.path_exists(direction):
-                to_location = self.__map.find_location_from_equivalent_direction(location, direction)
-                print "Found: {0}".format(to_location)
+                to_location = self.__map.find_location_from_equivalent_direction(location, direction)                
                 if not to_location and len(self.__map.locations()) < self.num_locations:
-                    to_location = self._new_location()   
-                    self.__map.add_location(to_location)
-                    self.__location_queue.append(to_location)
-                    print "** Created new location {0}".format(to_location)
+                    to_location = self.add_location(self._new_location())                
                 if to_location:
-                    path = Path(location, to_location)
-                    print "Created new path {0}".format(path)                 
-                    
-                    print "Adding path to {0} in direction {1} from {2}".format(to_location, direction, location)
+                    path = self.add_path(self._new_path(location, to_location))                    
                     location.add_path(path, direction)
-                    print "Adding path to {0} in direction {1} from {2}".format(location, Directions.opposite(direction), to_location)
-                    to_location.add_path(path, Directions.opposite(direction))
-                                        
-                    self.__map.add_path(path)
+                    to_location.add_path(path, direction.opposite())                                                                                
         self._visit_next_location()
                 
     def build(self):

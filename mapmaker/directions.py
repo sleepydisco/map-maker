@@ -7,85 +7,90 @@ Created by David Wood on 2012-06-16.
 Copyright (c) 2012 . All rights reserved.
 """
 
-class Direction(object):
+class Point(object):
+
+    NORTH, NORTH_EAST, EAST, SOUTH_EAST, SOUTH, SOUTH_WEST, WEST, NORTH_WEST = range(8)   
     
-    NORTH = 0
-    NORTH_EAST = 1
-    EAST = 2
-    SOUTH_EAST = 3
-    SOUTH = 4
-    SOUTH_WEST = 5
-    WEST = 6
-    NORTH_WEST = 7    
+    @staticmethod
+    def opposite(p):
+        return p + 4 if p < 4 else p - 4
 
-    def __init__(self, position, name, names={}):
-        self.__position = position
-        self.__name_key = name
-        self.__names = names
+    @staticmethod
+    def left(p):
+        return p - 1 if p > 0 else 7
+        
+    @staticmethod
+    def right(p):
+        return p + 1 if p < 7 else 0
 
+class Direction(object):    
+
+    __directions = {}
+    
+    def __init__(self, point, name_key, names={}):
+        self.__point = point
+        self.__name_key = name_key
+        self.__names = names        
+        Direction.__directions[point] = self
+        
     def __repr__(self):
         return self.name()
 
-    def position(self):
-        return self.__position
+    def point(self):
+        return self.__point
 
     def name(self):
         if self.__name_key in self.__names:
            return self.__names[self.__name_key]
         return self.__name_key 
+        
+    def is_cardinal(self):
+        return self.__point in (Point.NORTH, Point.EAST, Point.SOUTH, Point.WEST)
+        
+    def is_ordinal(self):
+        return not self.is_cardinal()
+        
+    def opposite(self):
+        return Direction.__directions[Point.opposite(self.point())]
 
-_DIRECTIONS = [ Direction(Direction.NORTH, "n"),                
-                Direction(Direction.NORTH_EAST, "ne"), 
-                Direction(Direction.EAST, "e"), 
-                Direction(Direction.SOUTH_EAST, "se"), 
-                Direction(Direction.SOUTH, "s"), 
-                Direction(Direction.SOUTH_WEST, "sw"), 
-                Direction(Direction.WEST, "w"), 
-                Direction(Direction.NORTH_WEST, "nw")]
-
-class Directions(object):
-
-    @staticmethod
-    def all_directions():
-        return _DIRECTIONS
-
-    @staticmethod
-    def opposite(direction):
-        pos = direction.position()
-        pos_opp = pos + 4 if pos < 4 else pos - 4
-        return _DIRECTIONS[pos_opp]
+    def neighbours(self):
+        left = Point.left(self.point())
+        right = Point.right(self.point())
+        return (Direction.get(left), Direction.get(right))        
+        
+    def equivalents(self):
+        (d1, d2) = self.neighbours()
+        if self.is_ordinal():
+            return ((d1, d2), (d2, d1))
+        else:
+            d3 = Direction.get(Point.left(d1.point()))
+            d4 = Direction.get(Point.right(d2.point()))            
+            return ((d2, d3), (d3, d2), (d1, d4), (d4, d1))
         
     @staticmethod
-    def neighbouring(direction):
-        pos = direction.position()
-        pos_left = pos - 1 if pos > 0 else 7
-        pos_right = pos + 1 if pos < 7 else 0
-        return (_DIRECTIONS[pos_left], _DIRECTIONS[pos_right])
+    def all():
+        return map(lambda (k, v): v, sorted(Direction.__directions.iteritems()))
         
     @staticmethod
-    def equivalents(direction):
-        pos = direction.position()
-        pos_left = pos - 1 if pos > 0 else 7
-        pos_right = pos + 1 if pos < 7 else 0
-        pos_left2 = pos_left - 1 if pos_left > 0 else 7
-        pos_right2 = pos_right + 1 if pos_right < 7 else 0
-        d1 = _DIRECTIONS[pos_left]
-        d2 = Directions.opposite(_DIRECTIONS[pos_left2])
-        d3 = _DIRECTIONS[pos_right]
-        d4 = Directions.opposite(_DIRECTIONS[pos_right2])
-        
-        return ((d1, d2), 
-                (d3, d4),
-                (d2, d1),
-                (d4, d3))
+    def get(point):
+        return Direction.__directions[point]
+
+Direction(Point.NORTH, "n")
+Direction(Point.SOUTH, "s")
+Direction(Point.EAST, "e")
+Direction(Point.WEST, "w")
+Direction(Point.NORTH_EAST, "ne")
+Direction(Point.NORTH_WEST, "nw")
+Direction(Point.SOUTH_EAST, "se")
+Direction(Point.SOUTH_WEST, "sw")
+                          
+def all():
+    return Direction.all()
 
 def main():
-    direction = _DIRECTIONS[0]
-    print "Direction: {0} ".format(direction.name())    
-    print "Opposite: {0} ".format(Directions.opposite(direction).name())    
-    print "Neighbours: " + str(Directions.neighbouring(direction))
-    print "Equivalents: " + str(Directions.equivalents(direction))
-        
+    print all()
+    print Direction.get(Point.NORTH).equivalents()
+    print Direction.get(Point.NORTH_WEST).equivalents()
 
 if __name__ == '__main__':
     main()
